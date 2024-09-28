@@ -1,7 +1,7 @@
 # Mostek-MK3850-SBC
 Mostek MK3850 Single Board Computer with tiny BASIC.
 
-Based on the [F8SBC](https://vintagechips.wordpress.com/2020/11/26/sbcf8reference/).
+Based on Tetsuya Suzuki's [F8SBC](https://vintagechips.wordpress.com/2020/11/26/sbcf8reference/).
 
 Assemble the firmware with the [Macro Assembler AS](http://john.ccac.rwth-aachen.de:8000/as/). 
 
