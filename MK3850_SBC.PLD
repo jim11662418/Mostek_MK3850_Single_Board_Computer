@@ -1,0 +1,25 @@
+Name            SBCF8;
+Partno          ;
+Revision        01;
+Date            09/24/2024;
+Designer        Jim Loos;
+Company         ;
+Assembly        ;
+Location        ;
+Device          G16V8;
+
+/* Inputs */
+Pin 2   = A15;
+Pin 3   = CPUREAD;
+Pin 4   = RAMWRITE;
+
+/* Outputs */
+Pin 12  = RAMCS;
+Pin 13  = MEMW;
+Pin 14  = ROMCS;
+Pin 15  = MEMR;
+
+!RAMCS  =  A15;
+!ROMCS  = !A15;
+!MEMW   = !RAMWRITE;
+!MEMR   =  CPUREAD;
