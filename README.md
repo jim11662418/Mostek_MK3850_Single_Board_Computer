@@ -5,6 +5,10 @@ Based on Tetsuya Suzuki's [F8SBC](https://vintagechips.wordpress.com/2020/11/26/
 
 Assemble the firmware with the [Macro Assembler AS](http://john.ccac.rwth-aachen.de:8000/as/). 
 
+<p align="center"><img src="/images/BASIC.png"/>
+<p align="center">tiny BASIC</p><br>
+<p align="center"><img src="/images/monitor.png"/>
+<p align="center">Monitor</p><br>
 <p align="center"><img src="/images/MK3850 SBC CPU.png"/>
 <p align="center">MK3850 SBC CPU</p><br>
 <p align="center"><img src="/images/MK3850 SBC Memory.png"/>
