@@ -2408,7 +2408,7 @@ monitor2:         dci prompttxt
                   pi putstr                   ; print the input prompt
 monitor3:         ins serialport              ; loop here until there is a character available at the serial port
                   bp monitor3
-                  pi getc                     ; get the command character waiting at the serial port
+                  pi getc1                    ; get the command character waiting at the serial port
                   lr A,rxbuffer               ; retrieve the character from the rx buffer
                   ci 'a'-1
                   bc monitor4                 ; branch if character is < 'a'
@@ -2600,7 +2600,7 @@ dnload:           clr
                   pi putstr                   ; else, prompt for the HEX download
 dnload1:          ins serialport              ; loop here until there is a character available at the serial port
                   bp dnload1
-                  pi getc                     ; get the character waiting at the serial port
+                  pi getc1                    ; get the character waiting at the serial port
                   lr A,rxbuffer               ; retrieve the character from the rx buffer
                   ci ESCAPE                   ; is it ESCAPE?
                   bnz dnload2                 ; not escape, continue below
@@ -2674,7 +2674,7 @@ dnload6:          pi getbyte                  ; get the last record address most
                   pi getbyte                  ; get the last record checksum
 dnload7:          ins serialport              ; loop here until there is a character available at the serial port
                   bp dnload7
-                  pi getc                     ; get the last carriage return
+                  pi getc1                    ; get the last carriage return
                   li '.'
                   lr txbuffer,A
                   pi putc                     ; echo the carriage return
@@ -2702,8 +2702,8 @@ portinput:        dci portaddrtxt
                   pi putstr                   ; print the string  to prompt for port address
 portinput1:       pi get2hex                  ; get the port address
                   lr A,rxbuffer
-                  ni 01H                      ; mask all but bit 0 (valid port addresses for 3850 are 0-1)
-                  lr portaddr,A               ; save the port address
+                  ni 0FH                      ; mask all but bits 0-3 (valid port addresses are 00-0FH)
+                  lr portaddr,A               ; save as the port address
                   bnc portinput2              ; branch if the input was not ESCAPE or ENTER
                   ci ESCAPE                   ; was the input ESCAPE?
                   bnz portinput1              ; go back for another input if not
@@ -2714,7 +2714,7 @@ portinput2:       dci portvaltxt
                   pi putstr                   ; print'Port value:  "
                   dci patch                   ; address in 'executable' RAM
                   li 0A0H                     ; 'INS' opcode
-                  as portaddr                 ; combine the 'INS' opcode with the port address
+                  as portaddr                 ; combine the 'INS' opcode with the port address in 'portaddr'
                   st                          ; save in 'executable' RAM, increment DC
                   li 50H+portval              ; 'LR portval,A' opcode
                   st                          ; save in 'executable' RAM, increment DC
@@ -2739,8 +2739,8 @@ portoutput:       dci portaddrtxt
                   pi putstr                   ; print the string  to prompt for port address
 portoutput1:      pi get2hex                  ; get the port address
                   lr A,rxbuffer
-                  ni 01H                      ; mask all but bit 0 (valid port addresses for 3850 are 0-1)
-                  lr portaddr,A               ; save the port address
+                  ni 0FH                      ; mask all but bits 0-3 (valid port addresses are 00-0FH)
+                  lr portaddr,A               ; save as the port address
                   bnc portoutput2             ; branch if the input was not ESCAPE or ENTER
                   ci ESCAPE                   ; is the input ESCAPE?
                   bnz portoutput1             ; if not, go back for more input
@@ -2761,7 +2761,7 @@ portoutput5:      dci patch                   ; address in 'executable' RAM
                   li 40H+portval              ; 'LR A,portval' opcode
                   st                          ; save in 'executable' RAM, increment DC
                   li 0B0H                     ; 'OUTS' opcode
-                  as portaddr                 ; combine the 'OUTS' opcode with the port address
+                  as portaddr                 ; combine the 'OUTS' opcode with the port address in 'portaddr'
                   st                          ; save in 'executable' RAM, increment DC
                   li 29H                      ; 'JMP' opcode
                   st                          ; save in 'executable' RAM, increment DC
@@ -3131,7 +3131,7 @@ print2hex:        lr K,P
 get1hex:          lr K,P                      
 get1hex1:         ins serialport              ; loop here until there is a character available at the serial port
                   bp get1hex1
-                  pi getc                     ; get the character waiting at the serial port
+                  pi getc1                    ; get the character waiting at the serial port
                   lr A,rxbuffer               ; retrieve the character from the rx buffer
 
 ; check for control characters (ESCAPE or ENTER)
@@ -3319,18 +3319,21 @@ space:            lr K,P
                   pi putc                     ; print the carriage return
                   pk                          ; return from second level subroutine
 
-; -----------------------------------------------------------------------------------
-; waits for a character from the serial port. does not echo.
-; saves character in 'rxbuffer'
-; -----------------------------------------------------------------------------------
+;-----------------------------------------------------------------------------------
+; waits for a character from the serial port. saves the character in 'rxbuffer'. 
+; this is a third level subroutine called by a second level subroutine. 
+; must disable interrupts. if this subroutine is interrupted, the return address is lost!
+;-----------------------------------------------------------------------------------
 getc:             ins serialport              ; wait for the start bit
                   bp getc
+getc1:            lr J,W                      ; save status register
+                  di                          ; disable interrupts
                   lis 8
                   lr bitcount,A
                   li 242                      ; wait 1.5 bit time
                   inc
                   bnz $-1
-getc1:            lr A,rxbuffer               ; get 8 data bits
+getc2:            lr A,rxbuffer               ; get 8 data bits
                   sr 1
                   lr rxbuffer,A
                   ins serialport              ; read the serial input
@@ -3344,16 +3347,21 @@ getc1:            lr A,rxbuffer               ; get 8 data bits
                   bnz $-1
                   nop
                   ds bitcount
-                  bnz getc1
+                  bnz getc2
                   li 246                      ; wait for the stop bit
                   inc
                   bnz $-1
+                  lr W,J                      ; restore status register
                   pop
 
-; -----------------------------------------------------------------------------------
-; transmit the character in 'txbuffer' out through the serial port
-; -----------------------------------------------------------------------------------
-putc:             lis 8                       
+;-----------------------------------------------------------------------------------
+; transmit the character in 'txbuffer' out through the serial port.
+; this is a third level subroutine called by a second level subroutine. 
+; must disable interrupts. if this subroutine is interrupted, the return address is lost!
+;-----------------------------------------------------------------------------------
+putc:             lr J,W                      ; save status register
+                  di                          ; disable interrupts
+                  lis 8                       
                   lr bitcount,A
                   li 01H
                   outs serialport             ; send the start bit
@@ -3382,6 +3390,7 @@ putc1:            lr A,txbuffer               ; send 8 data bits
                   li 252
                   inc
                   bnz $-1
+                  lr W,J                      ; restore status register
                   pop
 
 titletxt          db CLS                      
