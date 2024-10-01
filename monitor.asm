@@ -254,8 +254,11 @@ display:    dci addresstxt
             bnc display1      ; branch if not ESCAPE
             jmp monitor2      ; else, return to menu
 
-display1:   dci columntxt
+display1:   dci column2txt
             pi putstr
+            lr A,HL
+            ni 0F0H           ; address starts on an even boundry
+            lr HL,A
             lr DC,H           ; move the address from the 'get4hex' function into DC
             li 16
             lr linecnt,A      ; 16 lines
@@ -569,8 +572,8 @@ jump1:      pi newline
 ;=======================================================================
 ; display the contents of Scratchpad RAM in hex and ASCII
 ;=======================================================================
-scratch:    pi newline
-            pi newline
+scratch:    dci column1txt
+            pi putstr
             lis 8
             lr linecnt,A      ; 8 lines
             clr
@@ -1187,7 +1190,8 @@ menutxt     db "\r\r"
             db "X - display/eXamine scratchpad RAM",0
 prompttxt   db "\r\r>> ",0
 addresstxt  db "\r\rAddress: ",0
-columntxt   db "\r\r     ",SGR4,"00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r",SGR0,0
+column1txt  db "\r\r   ",SGR4,"00 01 02 03 04 05 06 07\r",SGR0,0
+column2txt  db "\r\r     ",SGR4,"00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r",SGR0,0
 waitingtxt  db "\r\rWaiting for HEX download...\r\r",0
 cksumerrtxt db " Checksum errors\r",0
 portaddrtxt db "\r\rPort address: ",0

@@ -19,7 +19,14 @@ bitcnt            equ 00H                     ; number of bits to send/receive
 txdata            equ 01H                     ; character to be transmitted
 rxdata            equ 01H                     ; received character
 
-CLS               equ "\e[2J\e[H"             ; VT100 escape sequence to to clear screen and home cursor
+; VT100 Escape sequences
+CLS               equ "\e[2J\e[H"            ; clear screen and home cursor
+SGR0              equ "\e[0m"                ; turn off character attributes
+SGR1              equ "\e[1m"                ; turn bold mode on
+SGR2              equ "\e[2m"                ; turn low intensity mode on
+SGR4              equ "\e[4m"                ; turn underline mode on
+SGR5              equ "\e[5m"                ; turn blinking mode on
+SGR7              equ "\e[7m"                ; turn reverse video on
 
                   org romtop
                   
@@ -120,7 +127,7 @@ fline:            lm                          ; get past
                   pi mvup                     ; delete the line
                   ; DC1 has the updated TXTU addr (76)
                   xdc                         ; has updated TXTU
-                  lr H,DC                     ; into h
+                  lr H,DC                     ; into H
                   lisl 6                      ; set ISAR to TXTU
                   lr A,HU                     ; new
                   lr I,A                      ; TXTU
@@ -147,9 +154,9 @@ st4:              pi pulldc                   ; *to* found line
                   xdc                         ; in DC1
                   pi pulldc                   ; *from* found line
 st5:              lm                          ; load a byte
-                  xdc                         ; switch dc
+                  xdc                         ; switch DC
                   st                          ; store it
-                  xdc                         ; reset dc
+                  xdc                         ; reset DC
                   ds 6                        ; dec byte count
                   bnz st5                     ; branch if more
                   jmp st2                     ; next record
@@ -417,7 +424,7 @@ tve:              jmp qhow                    ; error
 tvt:              xdc                         ; save TBP
                   dci varbgn                  ; begin of array
                   lr H,DC                     ; into 10-11
-                  pi mv2021                   ; move 2*index into R22-23
+                  pi mv2021                   ; move 2*index into 22-23
                   lr A,HU                     ; so we
                   lr I,A                      ; can
                   lr A,HL                     ; put begin
@@ -761,7 +768,7 @@ list:             pi tstnum                   ; see if a number
                   pi tstnum                   ; and the next number
                   ds 1                        ; was it a number
                   bnz lis1                    ; branch if it was
-                  jmp qwhat                   ; else error (687)
+                  jmp qwhat                   ; else error
                   
 lis1:             lr A,S                      ; is the
                   as i                        ; num of lines gt 255
@@ -999,7 +1006,7 @@ rea1:             jmp awhat                   ; error
                   bz rea2                     ; branch if it is
                   ci 0DH                      ; CR?
                   bnz rea1                    ; error if not
-rea2:             pi skip                     ; get past , or cr
+rea2:             pi skip                     ; get past , or CR
                   lisu 5                      ; setup
                   lisl 2                      ; temp pointer
                   lr H,DC                     ; store
@@ -1043,7 +1050,7 @@ restore:          lisu 5                      ; set ISAR
                   ; find the line number and goto i
 goto:             pi expr                     ; evaluate the expression
                   pi pushdc                   ; save DC in case of error
-                  pi endcr                    ; find cr
+                  pi endcr                    ; find CR
                   pi fndln                    ; find the line
                   bnz go1                     ; branch if not found
                   pi poprt                    ; clear the stack
@@ -1519,7 +1526,7 @@ mul1:             bnz mult                    ; branch if a multiply
                   pop                         ; return with LISL 0
                   
                   ; divide scratch (20-21) by (22-23)
-                  ; result in scratc (24-25)
+                  ; result in scratch (24-25)
                   ; remainder in scratch (20-21)
 divide:           lr K,P                      ; save return
                   pi pushrt                   ; save return
@@ -1585,7 +1592,7 @@ char:             lr H,DC                     ; save dc
                   lr DC,H                     ; get DC0 of loaded byte
                   pop                         ; return
                   
-                  ; find next non blank char starting at dc
+                  ; find next non blank char starting at DC
 ignbk:            lr H,DC                     ; save TBP
 ign1:             lm                          ; load a char (1470)
                   ci ' '                      ; see if a blank (1471)
@@ -1598,9 +1605,9 @@ ign1:             lm                          ; load a char (1470)
 exch:             lisl 0                      ; set ISAR
                   lr K,P                      ; save return
                   lr A,I                      ; hi
-                  lr 6,A                      ; in r6
+                  lr 6,A                      ; in R6
                   lr A,D                      ; low
-                  lr 7,A                      ; in r7
+                  lr 7,A                      ; in R7
                   pi pullsr                   ; put stack in scratch
                   lisu 0                      ; now
                   lisl 6                      ; put
@@ -1645,7 +1652,7 @@ mv2:              pop                         ; return
                   ; move data from low to hi core
                   ; H will have the addr of the last byte
                   ; that was moved
-mvdown:           lr H,DC                     ; save dc
+mvdown:           lr H,DC                     ; save DC
                   lr DC,Q                     ; stack top addr
                   lr A,HU                     ; compare
                   cm                          ; 1st byte
@@ -1734,7 +1741,7 @@ bu7:              lr A,8                      ; restore last char
                   lr A,7                      ; adjust
                   adc                         ; var addr
                   lr A,8                      ; load the last char
-                  st                          ; odD,fill the word
+                  st                          ; odd,fill the word
 bu8:              pi slen                     ; get the length
                   pk                          ; return
                   
@@ -1754,8 +1761,8 @@ save:             xdc                         ; save TBP
                   dci skend                   ; stack limit addr
                   pi pushdc                   ; save end of stack
                   lisu 1                      ; set ISAR
-                  lisl 6                      ; to q regs
-                  pi comt                     ; skip lisl 0
+                  lisl 6                      ; to Q regs
+                  pi comt                     ; skip LISL 0
                   bm sav1                     ; branch if room left
                   xdc                         ; get TBP
                   jmp qsorry                  ; process error
@@ -1819,7 +1826,7 @@ pushdc:           lr H,DC                     ; save current DC
                   st                          ; hi
                   lr A,HL                     ; save
                   st                          ; low
-                  lr DC,H                     ; restore dc
+                  lr DC,H                     ; restore DC
                   pop                         ; return
 
                   ; pull DC from stack
@@ -1853,8 +1860,8 @@ pull20:           lisl 0                      ; special entry for 20-21
 pullsr:           lr H,DC                     ; save DC
                   lr DC,Q                     ; load stack pointer
                   lm                          ; load
-                  lr I,A                      ; into scratch(1731)
-                  lm                          ; load 2nd(1732)
+                  lr I,A                      ; into scratch
+                  lm                          ; load 2nd
                   lr D,A                      ; into scratch
                   lr Q,DC                     ; save pointer
                   lr DC,H                     ; restore DC
@@ -1933,21 +1940,21 @@ pok1:             jmp qwhat                   ; error
                   
                   
                   ; output a value 0-255 to port 1 which controls the LEDs
-                  ; syntax: LEDS = value
-leds:             pi ignbk                    ; get the next character
+                  ; syntax: PORT1 = value
+port1:            pi ignbk                    ; get the next character
                   ci '='                      ; is it equals sign?
-                  bnz leds1                   ; branch if not equals sign
+                  bnz port1a                  ; branch if not equals sign
                   pi expr                     ; else, get the value to output to the LED port
                   pi pushdc                   ; save the TBP
                   lr A,I                      ; load the hi byte of the value to be output to the LED port
                   ci 0                        ; is the hi byte zero?
-                  bnz leds1                   ; branch if the value to be output to the LED port is greater than 255
+                  bnz port1a                  ; branch if the value to be output to the LED port is greater than 255
                   lr A,D                      ; else, load the low byte of the value to be output to the LED port
                   outs ledport                ; output the low byte of the value to the LED port
                   pi pulldc                   ; restore the TBP
                   jmp fin                     ; finish up
 
-leds1:            clr
+port1a:           clr
                   lr 8,A                      ; clear R8
                   jmp qwhat                  
                   
@@ -2145,8 +2152,8 @@ tab2:             equ $                       ; direct/statement
                   dw usr+h8000
                   db "POKE"                   ; POKE x,y
                   dw poke+h8000
-                  db "LEDS"
-                  dw leds+h8000               ; OUT x,y
+                  db "PORT1"
+                  dw port1+h8000               ; OUT x,y
                   db "RESTORE"
                   dw restore+h8000
                   db "STOP"
@@ -2471,8 +2478,11 @@ display:          dci addresstxt
                   bnc display1                ; branch if not ESCAPE
                   jmp monitor2                ; else, return to menu
 
-display1:         dci columntxt               
+display1:         dci column2txt               
                   pi putstr
+                  lr A,HL
+                  ni 0F0H                     ; address starts on an even boundry
+                  lr HL,A
                   lr DC,H                     ; move the address from the 'get4hex' function into DC
                   li 16
                   lr linecnt,A                ; 16 lines
@@ -2782,8 +2792,8 @@ jump1:            pi newline
 ;=======================================================================
 ; display the contents of Scratchpad RAM in hex and ASCII
 ;=======================================================================
-scratch:          pi newline                  
-                  pi newline
+scratch:          dci column1txt
+                  pi putstr
                   lis 8
                   lr linecnt,A                ; 8 lines
                   clr
@@ -3366,7 +3376,8 @@ menutxt           db "\r\r"
                   db "X - display/eXamine scratchpad RAM",0
 prompttxt         db "\r\r>> ",0              
 addresstxt        db "\r\rAddress: ",0        
-columntxt         db "\r\r     00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r",0
+column1txt        db "\r\r   ",SGR4,"00 01 02 03 04 05 06 07\r",SGR0,0
+column2txt        db "\r\r     ",SGR4,"00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r",SGR0,0
 waitingtxt        db "\r\rWaiting for HEX download...\r\r",0
 cksumerrtxt       db " Checksum errors\r",0   
 portaddrtxt       db "\r\rPort address: ",0   
