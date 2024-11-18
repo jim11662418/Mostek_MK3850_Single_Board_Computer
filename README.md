@@ -1,4 +1,4 @@
-# Mostek-MK3850-SBC
+# Mostek MK3850 SBC
 Mostek MK3850 Single Board Computer with tiny BASIC.
 
 Based on Tetsuya Suzuki's [F8SBC](https://vintagechips.wordpress.com/2020/11/26/sbcf8reference/).
